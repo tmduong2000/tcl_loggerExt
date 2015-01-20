@@ -621,4 +621,4 @@ proc ::loggerExt::_applyNewProc {logObj params procType} {
     }
 }
 
-package provide loggerExt 1.0.0
+package provide loggerExt 1.1.0
