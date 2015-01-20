@@ -12,7 +12,7 @@ package require fileutil
 
 #source ./configureLogger.tcl
 
-lappend ::auto_path .
+lappend ::auto_path ./..
 package require loggerExt 1.0.0
 
 namespace import ::loggerExt::*

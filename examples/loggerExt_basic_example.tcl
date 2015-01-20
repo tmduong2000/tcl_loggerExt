@@ -9,7 +9,7 @@ exec tclsh "$0" ${1+"$@"}
 
 package require Tcl 8.4
 
-lappend ::auto_path .
+lappend ::auto_path ./..
 package require loggerExt 1.0.0
 
 namespace import ::loggerExt::*
