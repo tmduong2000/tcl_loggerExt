@@ -25,6 +25,10 @@ namespace eval loggerExt {
         -levels all
         -date default
     }
+    
+    # tmduong2000 (2015-01-20) - add currVersion for easier maintaining
+    #    up-to-date version
+    set currVersion {1.1.0}
 }
 
 
@@ -213,6 +217,8 @@ proc ::loggerExt::configureLogger {logObj args} {
 
 # AUTHOR  : Tuyen M. Duong (tmduong2000@yahoo.com) (2014-12-11)
 # FUNCTION: ::loggerExt::_getUsageStr
+# MODIFIED: tmduong2000 (2015-01-20) - add additional data to support
+#    helper usage for loggerExt version 1.1.0
 # PURPOSE : return either options string or usage string to be used
 #   for cmdline library
 # PARAMS  :
@@ -221,23 +227,27 @@ proc ::loggerExt::configureLogger {logObj args} {
 #   options string if gUsageType is "options"
 #   usage string if gUsageType is "usage"
 proc ::loggerExt::_getUsageStr {gUsageType} {
-    set channelStr "value: stdout|stderr|open file handler.  Default value is"
-    set overwriteStr "value: 0|1 .  if 1 is used, then defined channel will use\
-            for given log priority.  Default value is"
-    set resetStr "value: no|all|sub_list of log levels.  Default value is"
-    set levelsStr "value: no|all|sub_list of log levels.  Default value is"
-    set dateStr "value: default|default1|default2|default3|clock format flags.\
-            \n\t\t      Default value is"
-    set customStr "value: any value | tcl command.  Default value is empty"
     
-    set formatStr "value: concatenate string of \
+    # tmduong2000 (2015-01-20) - reformat variable value of channelStr,
+    #   overwriteStr, resetStr, levelsStr, dateStr, customStr, formatStr.
+    #   Previous format don't work.
+    set channelStr "\"value: stdout|stderr|open file handler.  Default value is\""
+    set overwriteStr "\"value: 0|1 .  if 1 is used, then defined channel will use\
+            for given log priority.  Default value is\""
+    set resetStr "\"value: no|all|sub_list of log levels.  Default value is\""
+    set levelsStr "\"value: no|all|sub_list of log levels.  Default value is\""
+    set dateStr "\"value: default|default1|default2|default3|clock format flags.\
+            \n\t\t      Default value is\""
+    set customStr "\"value: any value | tcl command.  Default value is empty\""
+    
+    set formatStr "\"value: concatenate string of \
             \n\t\t\t    %date%,     %category%, %fullcategory%, %priority%,\
             \n\t\t\t    %hostname%, %pid%,      %caller%,   %message%,\
             \n\t\t\t    %custom%,   %custom1%,  %custom2%,  %custom3%,\
             \n\t\t\t    %custom%4,  %custom5%,  %custom6%,  %custom7%,\
             \n\t\t\t    %custom%8,  %custom9%,  %custom10%, %custom11%,\
             \n\t\t\t    %custom12%, %custom13%, %custom14%, %custom15%.\
-            \n\t\t      Default value is"
+            \n\t\t      Default value is\""
     
     set options {
         {channel.arg     stdout  $channelStr}
@@ -266,7 +276,13 @@ proc ::loggerExt::_getUsageStr {gUsageType} {
     
     set options [subst -nobackslashes -nocommands $options]
     
-    set usage "usage: configureLogger log_service_cmd_var\
+    # tmduong2000 (2015-01-20) - reform the usage message to displaying
+    #   current version number to recognize the running version of loggerExt
+    set usage ""
+    append usage "\n+--------------------------+"
+    append usage "\n| loggerExt version: ${::loggerExt::currVersion} |"
+    append usage "\n+--------------------------+"
+    append usage "\nusage: configureLogger log_service_cmd_var\
         ?-option value? ?-option value? ?....?\nOption:"
     
     return [eval {set $gUsageType}]
@@ -621,4 +637,5 @@ proc ::loggerExt::_applyNewProc {logObj params procType} {
     }
 }
 
-package provide loggerExt 1.1.0
+# tmduong2000 (2015-01-20) - change current version to dynamic calling variable
+package provide loggerExt ${::loggerExt::currVersion}
