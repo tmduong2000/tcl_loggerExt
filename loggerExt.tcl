@@ -234,6 +234,13 @@ proc ::loggerExt::_getUsageStr {gUsageType} {
     set channelStr "\"value: stdout|stderr|open file handler.  Default value is\""
     set overwriteStr "\"value: 0|1 .  if 1 is used, then defined channel will use\
             for given log priority.  Default value is\""
+        
+    # tmduong2000 (2015-01-20) - adding writetype option to option arguments
+    set writetypeStr "\"value: filestream|filename.  Default value is \""
+    
+    # tmduong2000 (2015-01-20) - adding filetype option to option arguments
+    set filetypeStr "\"value: txt|csv|html|xml.  Default value is\""
+    
     set resetStr "\"value: no|all|sub_list of log levels.  Default value is\""
     set levelsStr "\"value: no|all|sub_list of log levels.  Default value is\""
     set dateStr "\"value: default|default1|default2|default3|clock format flags.\
@@ -249,28 +256,39 @@ proc ::loggerExt::_getUsageStr {gUsageType} {
             \n\t\t\t    %custom12%, %custom13%, %custom14%, %custom15%.\
             \n\t\t      Default value is\""
     
+    # tmduong2000 (2015-01-20)
+    #   - adding writetype option to option arguments
+    #       option name         : writetype
+    #       option default value: filestream  (either filestream or filename)
+    #
+    #   - adding filetype option to option arguments
+    #       option name         : filetype
+    #       option default value: txt  (can be txt|csv|html|xml)
+    
     set options {
-        {channel.arg     stdout  $channelStr}
-        {overwrite.arg   0       $overwriteStr}
-        {reset.arg       no      $resetStr}
-        {levels.arg      no      $levelsStr}
-        {date.arg        default $dateStr}
-        {custom.arg      ""      $customStr}
-        {custom1.arg     ""      $customStr}
-        {custom2.arg     ""      $customStr}
-        {custom3.arg     ""      $customStr}
-        {custom4.arg     ""      $customStr}
-        {custom5.arg     ""      $customStr}
-        {custom6.arg     ""      $customStr}
-        {custom7.arg     ""      $customStr}
-        {custom8.arg     ""      $customStr}
-        {custom9.arg     ""      $customStr}
-        {custom10.arg    ""      $customStr}
-        {custom11.arg    ""      $customStr}
-        {custom12.arg    ""      $customStr}
-        {custom13.arg    ""      $customStr}
-        {custom14.arg    ""      $customStr}
-        {custom15.arg    ""      $customStr}
+        {channel.arg     stdout     $channelStr}
+        {overwrite.arg   0          $overwriteStr}
+        {writetype.arg   filestream $writetypeStr}
+        {filetype.arg    txt        $filetypeStr}
+        {reset.arg       no         $resetStr}
+        {levels.arg      no         $levelsStr}
+        {date.arg        default    $dateStr}
+        {custom.arg      ""         $customStr}
+        {custom1.arg     ""         $customStr}
+        {custom2.arg     ""         $customStr}
+        {custom3.arg     ""         $customStr}
+        {custom4.arg     ""         $customStr}
+        {custom5.arg     ""         $customStr}
+        {custom6.arg     ""         $customStr}
+        {custom7.arg     ""         $customStr}
+        {custom8.arg     ""         $customStr}
+        {custom9.arg     ""         $customStr}
+        {custom10.arg    ""         $customStr}
+        {custom11.arg    ""         $customStr}
+        {custom12.arg    ""         $customStr}
+        {custom13.arg    ""         $customStr}
+        {custom14.arg    ""         $customStr}
+        {custom15.arg    ""         $customStr}
         {format.arg      {[%date%] [%category%] [%priority%] '%message%'} $formatStr}
     }
     
