@@ -19,7 +19,9 @@ namespace eval loggerExt {
             package require $pkg    
         }  
     }
-    namespace export configureLogger
+    
+    # add additional api(s): setConfigOption and getConfigOption
+    namespace export configureLogger setConfigOption getConfigOption
     
     set currentOptions {
         -levels all
@@ -29,6 +31,14 @@ namespace eval loggerExt {
     # tmduong2000 (2015-01-20) - add currVersion for easier maintaining
     #    up-to-date version
     set currVersion {1.1.0}
+    
+    # tmduong2000 (2015-01-22) - create array configOptions to customize
+    #    any extra option arguments.
+    array set configOptions {}
+    set configOptions(filename) "temp_logfile_[uuid::uuid generate].txt"
+    set configOptions(seperator) {_csv_}
+    set configOptions(writeaccessmode) {append}
+    set configOptions(prependposition) 0
 }
 
 
@@ -234,6 +244,13 @@ proc ::loggerExt::_getUsageStr {gUsageType} {
     set channelStr "\"value: stdout|stderr|open file handler.  Default value is\""
     set overwriteStr "\"value: 0|1 .  if 1 is used, then defined channel will use\
             for given log priority.  Default value is\""
+        
+    # tmduong2000 (2015-01-20) - adding writetype option to option arguments
+    set writetypeStr "\"value: filestream|filename.  Default value is \""
+    
+    # tmduong2000 (2015-01-20) - adding filetype option to option arguments
+    set filetypeStr "\"value: txt|csv|html|xml.  Default value is\""
+    
     set resetStr "\"value: no|all|sub_list of log levels.  Default value is\""
     set levelsStr "\"value: no|all|sub_list of log levels.  Default value is\""
     set dateStr "\"value: default|default1|default2|default3|clock format flags.\
@@ -249,28 +266,39 @@ proc ::loggerExt::_getUsageStr {gUsageType} {
             \n\t\t\t    %custom12%, %custom13%, %custom14%, %custom15%.\
             \n\t\t      Default value is\""
     
+    # tmduong2000 (2015-01-20)
+    #   - adding writetype option to option arguments
+    #       option name         : writetype
+    #       option default value: filestream  (either filestream or filename)
+    #
+    #   - adding filetype option to option arguments
+    #       option name         : filetype
+    #       option default value: txt  (can be txt|csv|html|xml)
+    
     set options {
-        {channel.arg     stdout  $channelStr}
-        {overwrite.arg   0       $overwriteStr}
-        {reset.arg       no      $resetStr}
-        {levels.arg      no      $levelsStr}
-        {date.arg        default $dateStr}
-        {custom.arg      ""      $customStr}
-        {custom1.arg     ""      $customStr}
-        {custom2.arg     ""      $customStr}
-        {custom3.arg     ""      $customStr}
-        {custom4.arg     ""      $customStr}
-        {custom5.arg     ""      $customStr}
-        {custom6.arg     ""      $customStr}
-        {custom7.arg     ""      $customStr}
-        {custom8.arg     ""      $customStr}
-        {custom9.arg     ""      $customStr}
-        {custom10.arg    ""      $customStr}
-        {custom11.arg    ""      $customStr}
-        {custom12.arg    ""      $customStr}
-        {custom13.arg    ""      $customStr}
-        {custom14.arg    ""      $customStr}
-        {custom15.arg    ""      $customStr}
+        {channel.arg     stdout     $channelStr}
+        {overwrite.arg   0          $overwriteStr}
+        {writetype.arg   filestream $writetypeStr}
+        {filetype.arg    txt        $filetypeStr}
+        {reset.arg       no         $resetStr}
+        {levels.arg      no         $levelsStr}
+        {date.arg        default    $dateStr}
+        {custom.arg      ""         $customStr}
+        {custom1.arg     ""         $customStr}
+        {custom2.arg     ""         $customStr}
+        {custom3.arg     ""         $customStr}
+        {custom4.arg     ""         $customStr}
+        {custom5.arg     ""         $customStr}
+        {custom6.arg     ""         $customStr}
+        {custom7.arg     ""         $customStr}
+        {custom8.arg     ""         $customStr}
+        {custom9.arg     ""         $customStr}
+        {custom10.arg    ""         $customStr}
+        {custom11.arg    ""         $customStr}
+        {custom12.arg    ""         $customStr}
+        {custom13.arg    ""         $customStr}
+        {custom14.arg    ""         $customStr}
+        {custom15.arg    ""         $customStr}
         {format.arg      {[%date%] [%category%] [%priority%] '%message%'} $formatStr}
     }
     
@@ -340,6 +368,8 @@ proc ::loggerExt::_genProcName {serviceName level} {
 
 # AUTHOR  : Tuyen M. Duong (tmduong2000@yahoo.com) (2014-12-11)
 # FUNCTION: ::loggerExt::_getProcBody
+# MODIFIED: tmduong2000 (2015-01-20) - add algorithm to support writing log
+#    file in format csv for loggerExt version 1.1.0
 # PURPOSE : generate procBody for ${log instance}::logproc
 #    hardware options are date, priority, caller, hostname, pid, and message
 #    the rest options category, fullcategory, custom, custom1-15 are set
@@ -369,6 +399,7 @@ proc ::loggerExt::_getProcBody {params {bodyType regular}} {
             }
         }
         set formatstr $_params(format)
+        
         set lst {date    category fullcategory priority\
                 hostname pid      caller   message\
                 custom   custom1  custom2  custom3\
@@ -387,26 +418,87 @@ proc ::loggerExt::_getProcBody {params {bodyType regular}} {
             } else {
                 set replaceDate [clock format [clock seconds] -format $_params(date)]
             }
-            set formatstr [string map -nocase [list $item $replaceDate] $formatstr]
+            #set formatstr [string map -nocase [list $item $replaceDate] $formatstr]
+            
+            if { $_params(filetype) == "csv" } {
+                set formatstr [::loggerExt::_reformatCSVData $formatstr $item $replaceDate]
+            } else {
+                set formatstr [string map -nocase [list $item $replaceDate] $formatstr]
+            }
+            
         } elseif {$key == "priority"} {
             set strWidth [expr {$bodyType == "default" ? "" : "-9"}]
             set replace_prior [format "%${strWidth}s" $log_prior]
-            set formatstr [string map -nocase [list $item $replace_prior] $formatstr]
+            #set formatstr [string map -nocase [list $item $replace_prior] $formatstr]
+            
+            if { $_params(filetype) == "csv" } {
+                set formatstr [::loggerExt::_reformatCSVData $formatstr $item $replace_prior]
+            } else {
+                set formatstr [string map -nocase [list $item $replace_prior] $formatstr]
+            }
+            
         } elseif {$key == "message"} {
-            set formatstr [string map -nocase [list $item {$txt}] $formatstr]
+            #set formatstr [string map -nocase [list $item {$txt}] $formatstr]
+            
+            if { $_params(filetype) == "csv" } {
+                set formatstr [::loggerExt::_reformatCSVData $formatstr $item {$txt}]
+            } else {
+                set formatstr [string map -nocase [list $item {$txt}] $formatstr]
+            }
+            
         } elseif {$key == "caller"} {
             set replace_caller {[expr {[info level] >= 2 ? [lindex [info level -1] 0] : {global}}]}
-            set formatstr [string map -nocase [list $item $replace_caller] $formatstr]
+            #set formatstr [string map -nocase [list $item $replace_caller] $formatstr]
+            
+            if { $_params(filetype) == "csv" } {
+                set formatstr [::loggerExt::_reformatCSVData $formatstr $item $replace_caller]
+            } else {
+                set formatstr [string map -nocase [list $item $replace_caller] $formatstr]
+            }
+            
         } elseif {$key == "hostname"} {
-            set formatstr [string map -nocase [list $item {[info hostname]}] $formatstr]
+            #set formatstr [string map -nocase [list $item {[info hostname]}] $formatstr]
+            
+            if { $_params(filetype) == "csv" } {
+                set formatstr [::loggerExt::_reformatCSVData $formatstr $item {[info hostname]}]
+            } else {
+                set formatstr [string map -nocase [list $item {[info hostname]}] $formatstr]
+            }
+            
         } elseif {$key == "pid"} {
-            set formatstr [string map -nocase [list $item {[pid]}] $formatstr]
+            #set formatstr [string map -nocase [list $item {[pid]}] $formatstr]
+            
+            if { $_params(filetype) == "csv" } {
+                set formatstr [::loggerExt::_reformatCSVData $formatstr $item {[pid]}]
+            } else {
+                set formatstr [string map -nocase [list $item {[pid]}] $formatstr]
+            }
+            
         } else {
-            set formatstr [string map -nocase [list $item $_params($key)] $formatstr]
+            #set formatstr [string map -nocase [list $item $_params($key)] $formatstr]
+            
+            if { $_params(filetype) == "csv" } {
+                set formatstr [::loggerExt::_reformatCSVData $formatstr $item $_params($key)]
+            } else {
+                set formatstr [string map -nocase [list $item $_params($key)] $formatstr]
+            }
+            
         }
     }
     
-    return "puts $channel \"$formatstr\";"
+    if {$_params(writetype) == "filename"} {
+        if { $_params(filetype) == "csv" } {
+            return [::loggerExt::_generateCSVProcBody $_params(writetype) $formatstr]
+        } else {
+            ::loggerExt::_generateTxtProcBody $_params(writetype) $formatstr
+        }
+    } else {
+        if { $_params(filetype) == "csv" } {
+            return [::loggerExt::_generateCSVProcBody $_params(writetype) $formatstr $channel]
+        } else {
+            return [::loggerExt::_generateCSVProcBody $_params(writetype) $formatstr $channel]
+        }
+    }
 }
 
 # AUTHOR  : Tuyen M. Duong (tmduong2000@yahoo.com) (2014-12-10)
@@ -636,6 +728,201 @@ proc ::loggerExt::_applyNewProc {logObj params procType} {
         }
     }
 }
+
+
+# AUTHOR  : Tuyen M. Duong (tmduong2000@yahoo.com) (2015-01-21)
+# FUNCTION: ::loggerExt::_reformatCSVData
+# PURPOSE : reformat data to csv format
+#
+proc ::loggerExt::_reformatCSVData {formatstr replacing replaced} {
+    
+    set splitPat "\\\s*[::loggerExt::getConfigOption seperator]\\\s*"
+    set lst [::textutil::splitx $formatstr $splitPat]
+    
+    set index [lsearch -glob $lst "*${replacing}*"]
+    
+    if {$index >= 0} {
+        set tmpData [lindex $lst $index]
+        set tmpData [string map [list $replacing $replaced] $tmpData]
+        if { $replacing == "%message%" } {
+            regsub -all {\\\"} $tmpData {\"\"} tmpData
+            set tmpData "\\\"${tmpData}\\\""
+            
+        } else {
+            regsub -all {\\\"} $tmpData {\"\"} tmpData
+            set tmpData "\\\"${tmpData}\\\""
+        }
+        lset lst $index ${tmpData}
+        set formatstr [join $lst " [::loggerExt::getConfigOption seperator] " ]
+    }
+    return $formatstr
+}
+
+
+# AUTHOR  : Tuyen M. Duong (tmduong2000@yahoo.com) (2015-01-22)
+# FUNCTION: ::loggerExt::setConfigOption
+# PURPOSE : set config options to array ::loggerExt::configOptions
+#
+proc ::loggerExt::setConfigOption {key value } {
+    set ::loggerExt::configOptions($key) $value
+}
+
+# AUTHOR  : Tuyen M. Duong (tmduong2000@yahoo.com) (2015-01-22)
+# FUNCTION: ::loggerExt::getConfigOption
+# PURPOSE : get config options from array ::loggerExt::configOptions
+#
+proc ::loggerExt::getConfigOption {key} {
+    return $::loggerExt::configOptions($key)
+}
+
+
+# AUTHOR  : Tuyen M. Duong (tmduong2000@yahoo.com) (2015-01-22)
+# FUNCTION: ::loggerExt::_generateTxtProcBody
+# PURPOSE : generate procedure body to write text data
+#
+proc ::loggerExt::_generateTxtProcBody {writetype formatstr {channel {}}} {
+    if { $writetype == "filename"} {
+        
+        set fName [::loggerExt::getConfigOption filename]
+        
+        set pat {^temp_logfile_[0-9a-f]{8}(\-[0-9a-f]{4}){3}\-[0-9a-f]{12}\.txt}
+        if { [regexp -nocase -- $pat $fName] } {
+            puts [string repeat * 80]
+            puts "*** Warning: configOptions(filename) isn't set. temp_logfile\
+                is being used.  Your log data will be saved in this file."
+            puts "*** location: [pwd]/$fName"
+            puts "--------------------------"
+            puts "--- use command to set your file: ::loggerExt::setConfigOption\
+                filename \[your_log_file_name\]"
+            puts [string repeat * 80]
+        }
+        
+        set writeMode [::loggerExt::getConfigOption writeaccessmode]
+        
+        if {$writeMode == "append" || ( $writeMode == "prepend" && ![file exists $fName]) } {
+            set lst {}
+            lappend lst "set filename [::loggerExt::getConfigOption filename]"
+            lappend lst {set fH [open $filename a]}
+            lappend lst "puts \$fH \"$formatstr\";"
+            lappend lst {close $fH}
+            return [join $lst "\n"]
+        
+        } else {
+            set lst {}
+            lappend lst "set filename $fName"
+            lappend lst {set fH [open $filename]}
+            lappend lst {set content [string trim [read $fH]]}
+            lappend lst {close $fH}
+            
+            lappend lst {set fH [open $filename w]}
+            
+            if { $::loggerExt::configOptions(prependposition) == "0" } {
+                lappend lst "puts \$fH \"$formatstr\";"
+                lappend lst {if {[string length $content] > 0} {puts $fH $content}}
+            } else {
+                
+                set n $::loggerExt::configOptions(prependposition)
+                set pat [join [list {^(} [join [string repeat {.+? } $n ] {\n}] {)\n(.+$)}] {}]
+                lappend lst "set pat $pat"
+                lappend lst {set chk [regexp $pat $content skip txt_header txt_body]}
+                lappend lst "if !\$chk {"
+                lappend lst {if {[string length $content] > 0} {puts $fH $content}}
+                lappend lst "puts \$fH \"$formatstr\";"
+                lappend lst "} else {"
+                lappend lst {puts $fH $txt_header}
+                lappend lst "puts \$fH \"$formatstr\";"
+                lappend lst {puts $fH $txt_body}
+                lappend lst "}"
+            }
+            
+            lappend lst {close $fH}
+            return [join $lst "\n"]
+        }    
+    } else {
+        return "puts $channel \"$formatstr\";"
+    }
+}
+
+# AUTHOR  : Tuyen M. Duong (tmduong2000@yahoo.com) (2015-01-22)
+# FUNCTION: ::loggerExt::_generateCSVProcBody
+# PURPOSE : generate procedure body to write CSV data
+#
+proc ::loggerExt::_generateCSVProcBody {writetype formatstr {channel {}}} {
+    if { $writetype == "filename"} {
+        
+        set fName [::loggerExt::getConfigOption filename]
+        
+        set pat {^temp_logfile_[0-9a-f]{8}(\-[0-9a-f]{4}){3}\-[0-9a-f]{12}\.txt}
+        if { [regexp -nocase -- $pat $fName] } {
+            puts [string repeat * 80]
+            puts "*** Warning: configOptions(filename) isn't set. temp_logfile\
+                is being used.  Your log data will be saved in this file."
+            puts "*** location: [pwd]/$fName"
+            puts "--------------------------"
+            puts "--- use command to set your file: ::loggerExt::setConfigOption\
+                filename \[your_log_file_name\]"
+            puts [string repeat * 80]
+        }
+        
+        set writeMode [::loggerExt::getConfigOption writeaccessmode]
+        
+        if {$writeMode == "append" || ( $writeMode == "prepend" && ![file exists $fName]) } {
+            set lst {}
+            lappend lst "set filename $fName"
+            lappend lst {set fH [open $filename a]}
+            set splitPat "\\\s*[::loggerExt::getConfigOption seperator]\\\s*"
+            set formatstr [join [::textutil::splitx $formatstr $splitPat ] ,]
+            lappend lst {regsub -all {"} $txt {""} txt}
+            lappend lst "puts \$fH \"$formatstr\";"
+            lappend lst {close $fH}
+            
+            return [join $lst "\n"]
+        } else {
+            set lst {}
+            lappend lst "set filename $fName"
+            lappend lst {set fH [open $filename]}
+            lappend lst {set content [string trim [read $fH]]}
+            lappend lst {close $fH}
+            
+            lappend lst {set fH [open $filename w]}
+            lappend lst {regsub -all {"} $txt {""} txt}
+            
+            set splitPat "\\\s*[::loggerExt::getConfigOption seperator]\\\s*"
+            set formatstr [join [::textutil::splitx $formatstr $splitPat ] ,]
+            
+            if { $::loggerExt::configOptions(prependposition) == "0" } {
+                lappend lst "puts \$fH \"$formatstr\";"
+                lappend lst {if {[string length $content] > 0} {puts $fH $content}}
+            } else {
+                
+                set n $::loggerExt::configOptions(prependposition)
+                set pat [join [list {^(} [join [string repeat {.+? } $n ] {\n}] {)\n(.+$)}] {}]
+                lappend lst "set pat $pat"
+                lappend lst {set chk [regexp $pat $content skip csv_header csv_body]}
+                lappend lst "if !\$chk {"
+                lappend lst {if {[string length $content] > 0} {puts $fH $content}}
+                lappend lst "puts \$fH \"$formatstr\";"
+                lappend lst "} else {"
+                lappend lst {puts $fH $csv_header}
+                lappend lst "puts \$fH \"$formatstr\";"
+                lappend lst {puts $fH $csv_body}
+                lappend lst "}"
+            }
+            
+            lappend lst {close $fH}
+            return [join $lst "\n"]
+        }
+        
+    } else {
+        set lst {}
+        set splitPat "\\\s*[::loggerExt::getConfigOption seperator]\\\s*"
+        set formatstr [join [::textutil::splitx $formatstr $splitPat ] ,]
+        lappend lst {regsub -all {"} $txt {""} txt}
+        lappend lst "puts $channel \"$formatstr\";"
+        return [join $lst "\n"]
+    }
+}
+
 
 # tmduong2000 (2015-01-20) - change current version to dynamic calling variable
 package provide loggerExt ${::loggerExt::currVersion}
