@@ -60,7 +60,7 @@ OPTION | VALUE (DEFAULT) | DESC
 
 <br>
 ===
-####API: configureLogger flags<span id='configureLogger_flags' />
+<span id="configureLogger_flags" />####API: configureLogger flags
 FLAG | TYPE | DESC 
 --- | :---: | ---
 %category% | built-in | display log service name
