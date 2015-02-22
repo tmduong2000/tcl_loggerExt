@@ -6,7 +6,7 @@ ATTR | DESC | v1.1.0 | v1.0.0
 --- | --- | :---: | :---:
 configOptions | array type: **::loggerExt::configOptions**<br>**Purpose**: to store any extra option arguments | **Y**  | *N/A*
 <br>
-####current hard-code implementing in array **::loggerExt::configOptions**
+####current implementing hard-code (key, value) in array **::loggerExt::configOptions**
 KEY | VALUE | DESC 
 --- | --- | ---
 filename | filename (default: **temp_logfile_****\<****uuid\>.txt**) | writing logs to **csv**, **html**, or **xml** must set **configOption** with file name, otherwise, default file name will be used
