@@ -1,8 +1,8 @@
 ### loggerExt package releases
 ***
-**loggerExt** Wiki Document: [click me](https://github.com/tmduong2000/tcl_loggerExt/wiki)
-
-**loggerExt** examples: [click me](https://github.com/tmduong2000/tcl_loggerExt/tree/master/examples)
+**loggerExt** [USAGE](https://github.com/tmduong2000/tcl_loggerExt/blob/master/USAGE.md)<br>
+**loggerExt** [Wiki Document](https://github.com/tmduong2000/tcl_loggerExt/wiki)<br>
+**loggerExt** [examples](https://github.com/tmduong2000/tcl_loggerExt/tree/master/examples)
 ***
 ####loggerExt development status
 VERSION | NOTES | STATUS | START | END
