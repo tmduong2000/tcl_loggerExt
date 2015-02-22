@@ -69,7 +69,7 @@ FLAG | TYPE | DESC
 %hostname% | built-in | display hostname
 %pid% | built-in | display process id of current executing script
 %message% | built-in | message of log
-%date% | user-defined | using aside with option -date
+%date% | user-defined | parse -date value and then set interpreting value to flag %date%
 %custom% | user-defined | parse -custom value and then set interpreting value to flag %custom%
 %custom1% | user-defined | parse -custom1 value and then set interpreting value to flag %custom1%
 %custom2% | user-defined | parse -custom2 value and then set interpreting value to flag %custom2%
